@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensor Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 🔥 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -15,70 +20,122 @@
     <div class="container mx-auto p-5">
         <h1 class="text-4xl font-extrabold text-center mb-6 tracking-wider">Sensor Dashboard</h1>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center transform transition-all hover:scale-105 hover:shadow-2xl border-2 border-gray-700">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center">
                 <h2 class="text-xl font-semibold">Temperature</h2>
                 <p id="temperature" class="text-4xl font-bold text-yellow-400 mt-3">-- °C</p>
             </div>
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center transform transition-all hover:scale-105 hover:shadow-2xl border-2 border-gray-700">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center">
                 <h2 class="text-xl font-semibold">Humidity</h2>
                 <p id="humidity" class="text-4xl font-bold text-blue-400 mt-3">-- %</p>
             </div>
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center transform transition-all hover:scale-105 hover:shadow-2xl border-2 border-gray-700">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center">
                 <h2 class="text-xl font-semibold">Smoke Level</h2>
                 <p id="smoke" class="text-4xl font-bold text-red-400 mt-3">--</p>
             </div>
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center transform transition-all hover:scale-105 hover:shadow-2xl border-2 border-gray-700">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center">
                 <h2 class="text-xl font-semibold">Fire Sensor</h2>
                 <p id="fire" class="text-4xl font-bold text-orange-400 mt-3">--</p>
             </div>
         </div>
-        
-        <!-- Toggle Controls -->
+
+        <!-- 🔌 Toggle Controls -->
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl transform transition-all hover:scale-105 hover:shadow-2xl border-2 border-gray-700">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl border-2 border-gray-700">
                 <h2 class="text-xl font-semibold">Light Control</h2>
-                <button id="light-toggle" class="mt-4 px-6 py-2 bg-blue-500 rounded-lg text-white text-lg font-semibold hover:bg-blue-700 transition-all">Turn ON</button>
+                <button id="light-toggle" class="mt-4 px-6 py-2 bg-blue-500 rounded-lg text-white text-lg font-semibold hover:bg-blue-700 transition-all">
+                    Turn ON
+                </button>
             </div>
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl transform transition-all hover:scale-105 hover:shadow-2xl border-2 border-gray-700">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl border-2 border-gray-700">
                 <h2 class="text-xl font-semibold">Fan Control</h2>
-                <button id="fan-toggle" class="mt-4 px-6 py-2 bg-green-500 rounded-lg text-white text-lg font-semibold hover:bg-green-700 transition-all">Turn ON</button>
+                <button id="fan-toggle" class="mt-4 px-6 py-2 bg-green-500 rounded-lg text-white text-lg font-semibold hover:bg-green-700 transition-all">
+                    Turn ON
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        function updateSensorValues() {
-            document.getElementById("temperature").innerText = (20 + Math.random() * 10).toFixed(1) + " °C";
-            document.getElementById("humidity").innerText = (40 + Math.random() * 30).toFixed(1) + " %";
-            document.getElementById("smoke").innerText = (Math.random() * 100).toFixed(0);
-            document.getElementById("fire").innerText = Math.random() > 0.8 ? "🔥 Detected" : "No Fire";
+        // 🔥 Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVS-Naofx7HeF7KVqa_5cBEgJFnuqldFg",
+            authDomain: "iot-hub-cfaed.firebaseapp.com",
+            databaseURL: "https://iot-hub-cfaed-default-rtdb.firebaseio.com",
+            projectId: "iot-hub-cfaed",
+            storageBucket: "iot-hub-cfaed.appspot.com",
+            messagingSenderId: "328445930358",
+            appId: "1:328445930358:web:bd33e8f687e166bc46e857"
+        };
+
+        // ✅ Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // 📡 Fetch Live Sensor Data
+        function fetchSensorData() {
+            database.ref("SensorData").on("value", (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    document.getElementById("temperature").innerText = data.Temperature + " °C";
+                    document.getElementById("humidity").innerText = data.Humidity + " %";
+                    document.getElementById("smoke").innerText = data.MQ2;
+                    document.getElementById("fire").innerText = data.Flame === "Flame Detected" ? "🔥 Detected" : "No Fire";
+                } else {
+                    console.log("No data available");
+                }
+            });
         }
-        setInterval(updateSensorValues, 3000);
-        updateSensorValues();
 
-        document.getElementById("light-toggle").addEventListener("click", function() {
-            if (this.innerText === "Turn ON") {
-                this.innerText = "Turn OFF";
-                this.classList.replace("bg-blue-500", "bg-red-500");
-                this.classList.replace("hover:bg-blue-700", "hover:bg-red-700");
-            } else {
-                this.innerText = "Turn ON";
-                this.classList.replace("bg-red-500", "bg-blue-500");
-                this.classList.replace("hover:bg-red-700", "hover:bg-blue-700");
-            }
+        // 🔄 Start Fetching Live Data
+        fetchSensorData();
+
+        // 🌟 Toggle Light
+        const lightToggle = document.getElementById("light-toggle");
+        let lightStatus = false;
+
+        lightToggle.addEventListener("click", function() {
+            lightStatus = !lightStatus;
+            database.ref("Controls/Light").set(lightStatus ? "ON" : "OFF");
+            this.innerText = lightStatus ? "Turn OFF" : "Turn ON";
+            this.classList.toggle("bg-blue-500");
+            this.classList.toggle("bg-red-500");
         });
 
-        document.getElementById("fan-toggle").addEventListener("click", function() {
-            if (this.innerText === "Turn ON") {
-                this.innerText = "Turn OFF";
-                this.classList.replace("bg-green-500", "bg-red-500");
-                this.classList.replace("hover:bg-green-700", "hover:bg-red-700");
-            } else {
-                this.innerText = "Turn ON";
-                this.classList.replace("bg-red-500", "bg-green-500");
-                this.classList.replace("hover:bg-red-700", "hover:bg-green-700");
-            }
+        // 🌬 Toggle Fan
+        const fanToggle = document.getElementById("fan-toggle");
+        let fanStatus = false;
+
+        fanToggle.addEventListener("click", function() {
+            fanStatus = !fanStatus;
+            database.ref("Controls/Fan").set(fanStatus ? "ON" : "OFF");
+            this.innerText = fanStatus ? "Turn OFF" : "Turn ON";
+            this.classList.toggle("bg-green-500");
+            this.classList.toggle("bg-red-500");
         });
+
+        // 📡 Listen for Light/Fan Changes from Firebase
+        function listenForControlChanges() {
+            database.ref("Controls/Light").on("value", (snapshot) => {
+                if (snapshot.exists()) {
+                    lightStatus = snapshot.val() === "ON";
+                    lightToggle.innerText = lightStatus ? "Turn OFF" : "Turn ON";
+                    lightToggle.classList.toggle("bg-blue-500", !lightStatus);
+                    lightToggle.classList.toggle("bg-red-500", lightStatus);
+                }
+            });
+
+            database.ref("Controls/Fan").on("value", (snapshot) => {
+                if (snapshot.exists()) {
+                    fanStatus = snapshot.val() === "ON";
+                    fanToggle.innerText = fanStatus ? "Turn OFF" : "Turn ON";
+                    fanToggle.classList.toggle("bg-green-500", !fanStatus);
+                    fanToggle.classList.toggle("bg-red-500", fanStatus);
+                }
+            });
+        }
+
+        // 🔄 Start Listening for Control Changes
+        listenForControlChanges();
     </script>
 </body>
 </html>
